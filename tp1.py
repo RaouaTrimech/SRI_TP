@@ -1,7 +1,10 @@
+from functools import reduce
 import os
+from xml.dom.minidom import Document
 import pandas as pd 
 import datetime
-import docx
+import docx 
+from docx import Document
 import tkinter as tk
 from tkinter import filedialog
 import shutil
@@ -34,7 +37,7 @@ def create_datastructure(date_table, list_files):
 
 date_table = []
 list_files = []
-def index_file_by_date(file_path):
+def index_file_by_date(file_path): 
     
     f_data = upload_file(file_path)
 
@@ -149,6 +152,36 @@ def index_file_by_type_owner(file_path):
     # df_type_owner= create_datastructure(type_owner_table,type_owner_table_files)
     # return df_type_owner
 
+
+#works on docs files 
+type_keyword = []
+type_keyword_files = []
+def index_file_by_keyword(file_path):
+    
+    f_data = upload_file(file_path)
+
+    # Obtenir les tags du ficheir 
+    doc = Document(file_path)
+
+    # Access document properties
+    properties = doc.core_properties
+
+    # Get keywords or tags
+    tags = properties.keywords
+    keywords_list = tags.split('; ')
+     
+    #print(tags)
+    for tag in keywords_list:
+        if tag in type_keyword:
+            ext_indx = type_keyword.index(tag)
+            type_keyword_files[ext_indx].append(file_path)
+        else:
+            type_keyword.append(tag)
+            type_keyword_files.append([file_path])
+    # print(type_keyword)
+    # print(type_keyword_files)
+    
+
 # manual form : type & owner 
 def index_form(type="" , owner=""  ):
     if type == "" and owner == "" :
@@ -222,11 +255,26 @@ unique_words, word_counts = get_unique_words_and_frequency(text)
 # Get the files and frequency for each word
 words_and_files = get_files_and_frequency_for_each_word(unique_words, text, filenames)
 
+index_table = []
+index_freq_table = []
+index_files_table = []
 def indexation ():
-    # Print the results
-    print('Each word comes from each file(s) and with which frequency:')
+    
     for word, files_and_frequencies in words_and_files.items():
-        print(f'{word}: {files_and_frequencies}')
+        index_table.append(word)
+        #file_name, value = list(files_and_frequencies.items())
+        file_list = []
+        val_tot = 0
+        for i  in range (len(list(files_and_frequencies.items()))):
+            file_name , val = list(files_and_frequencies.items())[i]
+            val_tot += val
+            file_list.append(file_name)
+        index_files_table.append(file_list)
+        index_freq_table.append(val_tot)
+        # print(f'{word}: {files_and_frequencies}')
+    
+    return index_table , index_freq_table , index_files_table
+    
 
 def choose_file():
     root = tk.Tk()
@@ -241,6 +289,7 @@ def choose_file():
         print(f"An error occurred: {e}")
     return file_path
 
+# création 
 def arborescence(file_path):
     file_name = os.path.basename(file_path).split(".")[0]
 
@@ -258,7 +307,7 @@ def arborescence(file_path):
 
     if not os.path.exists("arborescence/Autre"):
         os.makedirs("arborescence/Autre")
-
+    # ajout des fichiers : 
     if('sri' in file_name.lower()):
         if('compte-rendu' in file_name.lower()):
             shutil.move(file_path, 'arborescence/SRI/CR')
@@ -268,51 +317,123 @@ def arborescence(file_path):
         shutil.move(file_path, 'arborescence/Autre')
 
             
-
+#---------------------------------------------------------------------
 
 # Test d'exécution de l'indexation et puis évaluation par rapport au résultat parfait
         
-file_path_1 = choose_file() # "file1.txt"
-file_path_2 = choose_file() # "file2.txt"
-file_path_3 = choose_file() # "file3.docx"
+# file_path_1 = choose_file() # "file1.txt"
+# file_path_2 = choose_file() # "file2.txt"
+# file_path_3 = choose_file() # "file3.docx"
 
-index_file_by_type(file_path_1)
-index_file_by_type(file_path_2)
-df1 = index_file_by_type(file_path_3)
+# index_file_by_type(file_path_1)
+# index_file_by_type(file_path_2)
+# df1 = index_file_by_type(file_path_3)
 
-index_file_by_owner(file_path_1)
-index_file_by_owner(file_path_2)
-df2 = index_file_by_owner(file_path_3)
+# index_file_by_owner(file_path_1)
+# index_file_by_owner(file_path_2)
+# df2 = index_file_by_owner(file_path_3)
 
-index_file_by_type_owner(file_path_1)
-index_file_by_type_owner(file_path_2)
-df3 = index_file_by_type_owner(file_path_3)
+# index_file_by_type_owner(file_path_1)
+# index_file_by_type_owner(file_path_2)
+# df3 = index_file_by_type_owner(file_path_3)
 
-result = index_form(".txt")
-print(result)
-
-
-recall_parfait = 1
-resultat_parfait = ['file1.txt', 'file2.txt']
-total_pertinents = len(resultat_parfait)
-truePositives = 0
-
-for i in range(len(result)):
-    if(resultat_parfait[i]==result[i]):
-        truePositives=truePositives+1
-print("Perfect recall is: ",recall_parfait," and obtained recall is ",truePositives/total_pertinents)
-
-df_date_1 = index_file_by_type_owner(file_path_1)
-df_date_2 = index_file_by_date(file_path_2)
-
-indexation ()
-print(df_date_2)
-
-# Plan d'arborescence
-fileName = choose_file()
-arborescence(fileName)
+# result = index_form(".txt")
+# print(result)
 
 
+# recall_parfait = 1
+# resultat_parfait = ['file1.txt', 'file2.txt']
+# total_pertinents = len(resultat_parfait)
+# truePositives = 0
 
+# for i in range(len(result)):
+#     if(resultat_parfait[i]==result[i]):
+#         truePositives=truePositives+1
+# print("Perfect recall is: ",recall_parfait," and obtained recall is ",truePositives/total_pertinents)
 
+# df_date_1 = index_file_by_type_owner(file_path_1)
+# df_date_2 = index_file_by_date(file_path_2)
+
+index_t , index_freq_t , index_files_t= indexation ()
+print(index_t)
+
+# print(df_date_2)
+
+# # Plan d'arborescence
+# fileName = choose_file()
+# arborescence(fileName)
+
+# #test the tags function : 
+# file_path_3 = choose_file()
+# index_file_by_keyword(file_path_3)
+#------------------------------------------------------------------------------------------
+
+# search by keyword : 
+def rech_mot_clé(motcle):
+    if motcle in type_keyword : 
+        MC_indx = type_keyword.index(motcle)
+        return type_keyword_files[MC_indx]
+    else : 
+        print("pas de fichier correspondant à ce tag")
+
+doc_tables = []
+# search by keyword association : 
+def rech_mot_clé_asso(motcles):
+    mc_list = motcles.split()
+    
+    for mc in mc_list:
+        ext_indx = type_keyword.index(mc)
+        if ext_indx >=0:
+            doc_tables.append(type_keyword_files[ext_indx])
+       
+    intersection_result = reduce(lambda x, y: set(x) & set(y), doc_tables)
+    return intersection_result
+
+#search in the content : 
+def rech_contenu(sentence):
+    result_table = []
+    #Stemming : 
+    file_tokens = regex.split(r'\W+', sentence)
+    file_stemmed_tokens = [lemmatizer.lemmatize(token) for token in file_tokens]
+    for word in file_stemmed_tokens :
+        ext_indx = index_table.index(word)
+        if ext_indx >=0 : 
+            result_table.append(index_files_table[ext_indx])
+    print("result_table",result_table)
+    contenu_result = reduce(lambda x, y: set(x) & set(y), result_table)
+    print("contenu_result : ",contenu_result)
+    return contenu_result , file_stemmed_tokens
+    
+#evaluation metrics :
+def evaluate_count(cont_res , norm_request ):
+    freq_files_wd = 0
+    word_sum = 0
+    text_tot = read_files(cont_res)
+    file_tokens = regex.split(r'\W+', text_tot)
+    initial_file_stemmed_tokens = [lemmatizer.lemmatize(token) for token in file_tokens]
+    word_sum += len(initial_file_stemmed_tokens)
+ 
+    for wd in norm_request : 
+        ext_indx = index_table.index(wd)
+        if ext_indx >=0 : 
+            freq_files_wd += index_freq_t[ext_indx]  
+    
+    print("word_sum",word_sum) 
+    print("freq_files_wd",freq_files_wd)       
+    if(word_sum != 0) :
+        return  freq_files_wd / word_sum
+
+#-------------------------------------------------------
+# test the tags function : 
+# file_path_3 = choose_file()
+# index_file_by_keyword(file_path_3)
+# # test the tags function : 
+# file_path_4 = choose_file()
+# index_file_by_keyword(file_path_4)
+# print(type_keyword)
+#print(rech_mot_clé_asso("cats dogs"))
+con_res , sentence_mod = rech_contenu("cats nice")
+print("mod req" , sentence_mod )
+print(evaluate_count(con_res , sentence_mod ))
+#-------------------------------------------------------
 
